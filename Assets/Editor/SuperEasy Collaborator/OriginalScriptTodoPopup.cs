@@ -19,7 +19,7 @@ public class OriginalScriptTodoPopup : EditorWindow
         OriginalScriptTodoPopup window = GetWindow<OriginalScriptTodoPopup>($"To-Do List for {script.name}");
         window.originalScript = script;
         window.scriptMetadata = metadata;
-        window.minSize = new Vector2(400, 300); // 팝업 최소 크기 설정
+        window.minSize = new Vector2(1000, 500); // 팝업 최소 크기 설정
         window.Show();
     }
 

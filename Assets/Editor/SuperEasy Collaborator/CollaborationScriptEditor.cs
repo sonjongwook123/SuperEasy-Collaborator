@@ -16,13 +16,9 @@ using System.Text.RegularExpressions; // Regex를 위해 추가
 public class CollaborationScriptEditor : EditorWindow
 {
     private string authorName = "";
-    private MonoScript selectedScriptForPartial; // Partial 생성 대상 스크립트 (더 이상 사용되지 않음, 팝업에서 선택)
     private Vector2 mainScrollPos;
     private Vector2 categoryScrollPos;
     private int selectedTab = 0; // 0: 스크립트, 1: Partial, 2: 카테고리 관리
-
-    // To-Do 입력을 위한 임시 필드 (주 탭에서는 더 이상 사용 안 함)
-    // private Dictionary<string, string> newTodoDescriptions = new Dictionary<string, string>();
 
     // 로딩 최적화를 위한 캐시
     private List<MonoScript> cachedOriginalScripts;
@@ -31,6 +27,18 @@ public class CollaborationScriptEditor : EditorWindow
 
     // Partial 추가 시 사용할 기본 작성자 이름 (팝업에 전달)
     private string currentAuthorNameForNewPartial = "";
+
+    // 페이징 관련 변수
+    private int currentPage = 0;
+    private const int scriptsPerPage = 10;
+
+    // 카테고리 필터링 관련 변수
+    private string selectedCategoryFilter = "전체보기"; // 초기 필터: 전체보기
+
+    // 배너 이미지 변수
+    private Texture2D bannerImage;
+    private const int bannerWidth = 1000;
+    private const int bannerHeight = 112;
 
 
     [MenuItem("Tools/Collaboration Script Editor")]
@@ -46,6 +54,9 @@ public class CollaborationScriptEditor : EditorWindow
         // 기본 만든이 이름 로드
         authorName = EditorPrefs.GetString("CollaborationScriptEditor.AuthorName", Environment.UserName);
         currentAuthorNameForNewPartial = authorName; // 초기값 설정
+
+        // 배너 이미지 로드
+        LoadBannerImage();
     }
 
     // Window가 포커스를 얻거나 프로젝트 변경이 감지될 때 데이터 새로고침
@@ -70,16 +81,16 @@ public class CollaborationScriptEditor : EditorWindow
         {
             string scriptPath = AssetDatabase.GUIDToAssetPath(guid);
 
-            // Editor 스크립트 및 Partial 스크립트 제외
+            // Editor 스크립트 및 Partial 스크립트 제외 (여기서 Editor 스크립트 필터링)
             if (scriptPath.Contains("Assets/Editor/") &&
-                !scriptPath.Contains("PartialScriptManager.cs") &&
-                !scriptPath.Contains("ScriptCategoryAndMemoManager.cs") &&
-                !scriptPath.Contains("CollaborationScriptEditor.cs") &&
-                !scriptPath.Contains("PartialScriptPopup.cs") &&
-                !scriptPath.Contains("OriginalScriptTodoPopup.cs") // 새 팝업 스크립트 추가
+                !scriptPath.Contains("PartialScriptManager.cs") && // 핵심 스크립트 제외
+                !scriptPath.Contains("ScriptCategoryAndMemoManager.cs") && // 핵심 스크립트 제외
+                !scriptPath.Contains("CollaborationScriptEditor.cs") && // 핵심 스크립트 제외
+                !scriptPath.Contains("PartialScriptPopup.cs") && // 핵심 스크립트 제외
+                !scriptPath.Contains("OriginalScriptTodoPopup.cs") // 핵심 스크립트 제외
                )
             {
-                continue;
+                continue; // Editor 폴더 내의 다른 스크립트는 건너뜀
             }
 
             // .cs.partial 또는 .disabled 확장자를 가진 파일은 원본 스크립트 목록에서 제외
@@ -89,12 +100,14 @@ public class CollaborationScriptEditor : EditorWindow
             }
 
             MonoScript script = AssetDatabase.LoadAssetAtPath<MonoScript>(scriptPath);
-            if (script != null)
+            // 스크립트가 유효하고, 실제로 파일이 존재하는지 확인하여 목록에 추가
+            if (script != null && File.Exists(scriptPath))
             {
                 cachedOriginalScripts.Add(script);
                 ScriptMetadata metadata = ScriptCategoryAndMemoManager.Instance.GetOrCreateScriptMetadata(scriptPath);
                 cachedScriptMetadata[scriptPath] = metadata;
             }
+            // else { Debug.LogWarning($"Skipping non-existent or invalid script asset: {scriptPath}"); } // 디버깅용
         }
 
         // PartialScriptManager에서 각 원본 스크립트의 Partial 개수 계산
@@ -112,8 +125,35 @@ public class CollaborationScriptEditor : EditorWindow
         // Debug.Log("Script data loaded/refreshed."); // 로딩 확인용
     }
 
+    private void LoadBannerImage()
+    {
+        // CollaborationScriptEditor.cs 스크립트가 있는 폴더 경로
+        string editorScriptPath = AssetDatabase.GetAssetPath(MonoScript.FromScriptableObject(this));
+        string editorFolderPath = Path.GetDirectoryName(editorScriptPath);
+        string bannerPath = Path.Combine(editorFolderPath, "banner.png").Replace("\\", "/");
+
+        bannerImage = AssetDatabase.LoadAssetAtPath<Texture2D>(bannerPath);
+        if (bannerImage == null)
+        {
+            Debug.LogWarning($"Banner image not found at: {bannerPath}. Please ensure banner.png is in the same folder as CollaborationScriptEditor.cs");
+        }
+    }
+
+
     void OnGUI()
     {
+        // 배너 이미지 표시
+        if (bannerImage != null)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace(); // 중앙 정렬
+            // 배너 이미지 크기 강제 설정
+            GUILayout.Label(bannerImage, GUILayout.Width(bannerWidth), GUILayout.Height(bannerHeight));
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            EditorGUILayout.Space(10);
+        }
+
         mainScrollPos = EditorGUILayout.BeginScrollView(mainScrollPos);
 
         GUILayout.Label("협업 스크립트 에디터", EditorStyles.largeLabel);
@@ -160,67 +200,157 @@ public class CollaborationScriptEditor : EditorWindow
             return;
         }
 
-        foreach (var script in cachedOriginalScripts)
+        // 카테고리 필터 버튼
+        DrawCategoryFilterButtons();
+
+        EditorGUILayout.Space();
+
+        // 필터링된 스크립트 목록 가져오기
+        List<MonoScript> filteredScripts = GetFilteredScripts();
+
+        if (filteredScripts.Count == 0)
         {
-            string scriptPath = AssetDatabase.GetAssetPath(script);
-            ScriptMetadata metadata = cachedScriptMetadata[scriptPath];
+            EditorGUILayout.HelpBox($"'{selectedCategoryFilter}' 카테고리에 해당하는 스크립트가 없습니다.", MessageType.Info);
+            // 페이징 컨트롤은 필터된 스크립트가 있을 때만 보이도록 합니다.
+        }
+        else
+        {
+            // 페이징 처리
+            int totalPages = Mathf.CeilToInt((float)filteredScripts.Count / scriptsPerPage);
+            currentPage = Mathf.Clamp(currentPage, 0, totalPages - 1); // 현재 페이지 유효성 검사
 
-            EditorGUILayout.BeginVertical(GUI.skin.box);
-            EditorGUILayout.LabelField($"**{script.name}.cs**", EditorStyles.boldLabel);
+            int startIndex = currentPage * scriptsPerPage;
+            int endIndex = Mathf.Min(startIndex + scriptsPerPage, filteredScripts.Count);
 
-            // Partial 개수 표시
-            int partialCount = cachedPartialCounts.ContainsKey(scriptPath) ? cachedPartialCounts[scriptPath] : 0;
-            EditorGUILayout.LabelField($"Partial 파일 개수: {partialCount}개");
+            for (int i = startIndex; i < endIndex; i++)
+            {
+                MonoScript script = filteredScripts[i];
+                string scriptPath = AssetDatabase.GetAssetPath(script);
+                ScriptMetadata metadata = cachedScriptMetadata[scriptPath];
 
-            // To-Do 달성목록 체력바 (ProgressBar)
-            DrawTodoProgressBar(metadata.todos);
+                EditorGUILayout.BeginVertical(GUI.skin.box);
+                // 스크립트 이름 예쁘게 표시 및 경로 표시
+                EditorGUILayout.LabelField($"{script.name}.cs", EditorStyles.boldLabel); // 스크립트 이름
+                EditorGUILayout.LabelField($"경로: {scriptPath}", EditorStyles.miniLabel); // 스크립트 경로 (작은 글씨)
 
-            EditorGUILayout.Space(5);
+                // Partial 개수 표시
+                int partialCount = cachedPartialCounts.ContainsKey(scriptPath) ? cachedPartialCounts[scriptPath] : 0;
+                EditorGUILayout.LabelField($"Partial 파일 개수: {partialCount}개");
 
+                // To-Do 달성목록 체력바 (ProgressBar)
+                DrawTodoProgressBar(metadata.todos);
+
+                EditorGUILayout.Space(5);
+
+                EditorGUILayout.BeginHorizontal();
+
+                // To-Do 보기 버튼
+                if (GUILayout.Button($"📋 To-Do 보기 ({metadata.todos.Count})", GUILayout.Height(25)))
+                {
+                    OriginalScriptTodoPopup.ShowWindow(script, metadata);
+                }
+
+                // Partial 목록 버튼
+                GUI.backgroundColor = Color.yellow;
+                if (GUILayout.Button($"💡 '{script.name}' Partial 목록 ({partialCount})", GUILayout.Height(25)))
+                {
+                    // PartialScriptPopup에 현재 저자 이름을 넘겨주어, Partial 추가 시 기본값으로 사용
+                    PartialScriptPopup.ShowPartialListForScript(script, currentAuthorNameForNewPartial);
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.Space(5);
+
+                // 카테고리 선택
+                int currentCategoryIndex = ScriptCategoryAndMemoManager.Instance.categories.IndexOf(metadata.category);
+                if (currentCategoryIndex == -1) currentCategoryIndex = 0; // Uncategorized (또는 기본값)
+
+                int newCategoryIndex = EditorGUILayout.Popup("카테고리:", currentCategoryIndex, ScriptCategoryAndMemoManager.Instance.categories.ToArray());
+                if (newCategoryIndex != currentCategoryIndex)
+                {
+                    metadata.category = ScriptCategoryAndMemoManager.Instance.categories[newCategoryIndex];
+                    ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
+                }
+
+                // 메모 기능
+                EditorGUILayout.LabelField("메모:");
+                string newMemo = EditorGUILayout.TextArea(metadata.memo, GUILayout.Height(40));
+                if (newMemo != metadata.memo)
+                {
+                    metadata.memo = newMemo;
+                    ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
+                }
+
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(5);
+            }
+
+            // 페이징 컨트롤 UI
             EditorGUILayout.BeginHorizontal();
-
-            // To-Do 보기 버튼
-            if (GUILayout.Button($"📋 To-Do 보기 ({metadata.todos.Count})", GUILayout.Height(25)))
+            GUILayout.FlexibleSpace();
+            GUI.enabled = (currentPage > 0);
+            if (GUILayout.Button("◀ 이전", GUILayout.Width(70)))
             {
-                OriginalScriptTodoPopup.ShowWindow(script, metadata);
+                currentPage--;
             }
-
-            // Partial 목록 버튼
-            GUI.backgroundColor = Color.yellow;
-            if (GUILayout.Button($"💡 '{script.name}' Partial 목록 ({partialCount})", GUILayout.Height(25)))
+            GUI.enabled = true;
+            EditorGUILayout.LabelField($"페이지 {currentPage + 1} / {totalPages}", EditorStyles.boldLabel, GUILayout.Width(100));
+            GUI.enabled = (currentPage < totalPages - 1);
+            if (GUILayout.Button("다음 ▶", GUILayout.Width(70)))
             {
-                // PartialScriptPopup에 현재 저자 이름을 넘겨주어, Partial 추가 시 기본값으로 사용
-                PartialScriptPopup.ShowPartialListForScript(script, currentAuthorNameForNewPartial);
+                currentPage++;
             }
-            GUI.backgroundColor = Color.white;
-
+            GUI.enabled = true;
+            GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
-            EditorGUILayout.Space(5);
-
-            // 카테고리 선택
-            int currentCategoryIndex = ScriptCategoryAndMemoManager.Instance.categories.IndexOf(metadata.category);
-            if (currentCategoryIndex == -1) currentCategoryIndex = 0; // Uncategorized
-
-            int newCategoryIndex = EditorGUILayout.Popup("카테고리:", currentCategoryIndex, ScriptCategoryAndMemoManager.Instance.categories.ToArray());
-            if (newCategoryIndex != currentCategoryIndex)
-            {
-                metadata.category = ScriptCategoryAndMemoManager.Instance.categories[newCategoryIndex];
-                ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
-            }
-
-            // 메모 기능
-            EditorGUILayout.LabelField("메모:");
-            string newMemo = EditorGUILayout.TextArea(metadata.memo, GUILayout.Height(40));
-            if (newMemo != metadata.memo)
-            {
-                metadata.memo = newMemo;
-                ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
-            }
-
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.Space(5);
         }
     }
+
+    private void DrawCategoryFilterButtons()
+    {
+        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+        // 전체보기 버튼
+        GUI.backgroundColor = (selectedCategoryFilter == "전체보기") ? Color.cyan : Color.white;
+        if (GUILayout.Button("전체보기", EditorStyles.toolbarButton))
+        {
+            selectedCategoryFilter = "전체보기";
+            currentPage = 0; // 필터 변경 시 첫 페이지로 이동
+        }
+        GUI.backgroundColor = Color.white;
+
+        // 각 카테고리 버튼
+        foreach (string category in ScriptCategoryAndMemoManager.Instance.categories)
+        {
+            GUI.backgroundColor = (selectedCategoryFilter == category) ? Color.cyan : Color.white;
+            if (GUILayout.Button(category, EditorStyles.toolbarButton))
+            {
+                selectedCategoryFilter = category;
+                currentPage = 0; // 필터 변경 시 첫 페이지로 이동
+            }
+            GUI.backgroundColor = Color.white;
+        }
+        EditorGUILayout.EndHorizontal();
+    }
+
+    private List<MonoScript> GetFilteredScripts()
+    {
+        if (selectedCategoryFilter == "전체보기")
+        {
+            return cachedOriginalScripts;
+        }
+        else
+        {
+            return cachedOriginalScripts
+                .Where(script => {
+                    string scriptPath = AssetDatabase.GetAssetPath(script);
+                    return cachedScriptMetadata.ContainsKey(scriptPath) &&
+                           cachedScriptMetadata[scriptPath].category == selectedCategoryFilter;
+                })
+                .ToList();
+        }
+    }
+
 
     private void DrawPartialScriptTab()
     {
@@ -233,16 +363,9 @@ public class CollaborationScriptEditor : EditorWindow
             return;
         }
 
-        // 전체 Partial 목록을 여기서 직접 표시
-        // PartialScriptPopup에서 제공되는 것과 유사한 UI를 직접 구현하거나,
-        // 이 탭의 목적에 맞게 간소화하여 표시할 수 있습니다.
-        // 현재는 PartialScriptPopup을 통해 특정 스크립트의 Partial을 관리하므로,
-        // 이 탭은 전체 개요만 보여주는 것이 적절합니다.
-
         EditorGUILayout.LabelField($"총 Partial 스크립트: {PartialScriptManager.Instance.partialScripts.Count}개", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
-        // 전체 Partial 목록 간단히 표시 (메모, To-Do는 팝업에서 관리)
         foreach (var info in PartialScriptManager.Instance.partialScripts.OrderBy(p => Path.GetFileName(p.partialFilePath)))
         {
             EditorGUILayout.BeginVertical(GUI.skin.box);
@@ -380,65 +503,6 @@ public class CollaborationScriptEditor : EditorWindow
         EditorGUILayout.Space(5);
     }
 
-    // CollaborationScriptEditor에서 사용할 To-Do UI (팝업으로 이동했으므로 주석 처리하거나 제거 가능)
-    // 현재는 OriginalScriptTodoPopup에서 사용하므로 이 함수는 필요 없음
-    /*
-    private void DrawTodoListUI(List<TodoItem> todos, string uniqueIdForInput, ScriptableObject managerToSave)
-    {
-        EditorGUILayout.LabelField("To-Do List:", EditorStyles.boldLabel);
-
-        int completedTodos = todos.Count(t => t.isCompleted);
-        int totalTodos = todos.Count;
-        string todoStatus = totalTodos > 0 ? $"({completedTodos}/{totalTodos})" : "(0/0)";
-        float progress = totalTodos > 0 ? (float)completedTodos / totalTodos : 0f;
-
-        Rect progressBarRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
-        EditorGUI.ProgressBar(progressBarRect, progress, $"진행 상태: {todoStatus}");
-        EditorGUILayout.Space(5);
-
-        for (int i = 0; i < todos.Count; i++)
-        {
-            EditorGUILayout.BeginHorizontal();
-            bool newIsCompleted = EditorGUILayout.Toggle(todos[i].isCompleted, GUILayout.Width(20));
-            if (newIsCompleted != todos[i].isCompleted)
-            {
-                todos[i].isCompleted = newIsCompleted;
-                EditorUtility.SetDirty(managerToSave);
-                AssetDatabase.SaveAssets();
-            }
-            EditorGUILayout.LabelField(todos[i].description, todos[i].isCompleted ? EditorStyles.miniLabel : EditorStyles.label);
-            if (GUILayout.Button("🗑️", GUILayout.Width(25)))
-            {
-                todos.RemoveAt(i);
-                EditorUtility.SetDirty(managerToSave);
-                AssetDatabase.SaveAssets();
-                GUIUtility.ExitGUI();
-            }
-            EditorGUILayout.EndHorizontal();
-        }
-
-        if (!newTodoDescriptions.ContainsKey(uniqueIdForInput))
-        {
-            newTodoDescriptions[uniqueIdForInput] = "";
-        }
-        EditorGUILayout.BeginHorizontal();
-        newTodoDescriptions[uniqueIdForInput] = EditorGUILayout.TextField("새 To-Do:", newTodoDescriptions[uniqueIdForInput]);
-        if (GUILayout.Button("➕ 추가", GUILayout.Width(60)))
-        {
-            string newTodoDesc = newTodoDescriptions[uniqueIdForInput];
-            if (!string.IsNullOrWhiteSpace(newTodoDesc))
-            {
-                todos.Add(new TodoItem(newTodoDesc));
-                EditorUtility.SetDirty(managerToSave);
-                AssetDatabase.SaveAssets();
-                newTodoDescriptions[uniqueIdForInput] = "";
-            }
-        }
-        EditorGUILayout.EndHorizontal();
-    }
-    */
-
-
     // ------------ Roslyn 기반 Partial 스크립트 통합 로직 ----------------
 
     // 팝업에서 호출할 수 있도록 static으로 변경
@@ -455,7 +519,7 @@ public class CollaborationScriptEditor : EditorWindow
         string originalFolderPath = Path.GetDirectoryName(originalScriptPath);
 
         // 기능 이름을 포함한 새 Partial 파일명 생성
-        string partialFileName = $"{originalFileName}.{featureName}.partial.cs";
+        string partialFileName = $"{originalFileName}.{featureName.Replace(" ", "").Replace("-", "")}.partial.cs"; // 파일명에 특수문자 제거
         string partialFilePath = Path.Combine(originalFolderPath, partialFileName).Replace("\\", "/");
 
         if (File.Exists(partialFilePath))
@@ -476,6 +540,9 @@ public class CollaborationScriptEditor : EditorWindow
             PartialScriptManager.Instance.AddPartialScript(partialFilePath, originalScriptPath, featureName, authorName, creationDate);
 
             Debug.Log($"Partial 스크립트 '{partialFileName}'가 성공적으로 생성되었습니다.");
+            // CollaborationScriptEditor의 데이터 새로고침
+            CollaborationScriptEditor window = GetWindow<CollaborationScriptEditor>();
+            window.LoadScriptData();
             return true;
         }
         catch (Exception e)
@@ -590,7 +657,7 @@ public class CollaborationScriptEditor : EditorWindow
         {
             if (!File.Exists(info.partialFilePath))
             {
-                Debug.LogWarning($"Partial 스크립트 파일 '{info.partialFilePath}'를 찾을 수 없습니다. 통합 목록에서 건너뜝니다.");
+                Debug.LogWarning($"Partial 스크립트 파일 '{info.partialFilePath}'를 찾을 수 없습니다. 통합 목록에서 건너뜁니다.");
                 continue;
             }
 

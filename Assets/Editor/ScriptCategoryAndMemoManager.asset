@@ -12627,3 +12627,7 @@ MonoBehaviour:
     category: Uncategorized
     memo: 
     todos: []
+  - scriptPath: Assets/move.cs
+    category: Uncategorized
+    memo: 
+    todos: []
