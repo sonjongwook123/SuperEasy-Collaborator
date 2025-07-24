@@ -1,5 +1,4 @@
-﻿// OriginalScriptTodoPopup.cs
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 using System.IO;
 using System.Linq;
@@ -9,17 +8,18 @@ using System;
 public class OriginalScriptTodoPopup : EditorWindow
 {
     private MonoScript originalScript;
-    private ScriptMetadata scriptMetadata; // 원본 스크립트의 메타데이터
+    private ScriptMetadata scriptMetadata;
     private Vector2 scrollPos;
 
-    private Dictionary<string, string> newTodoDescriptions = new Dictionary<string, string>(); // To-Do 입력을 위한 임시 필드 (스크립트 경로 기반)
+    private Dictionary<string, string> newTodoDescriptions = new Dictionary<string, string>();
 
     public static void ShowWindow(MonoScript script, ScriptMetadata metadata)
     {
         OriginalScriptTodoPopup window = GetWindow<OriginalScriptTodoPopup>($"To-Do List for {script.name}");
         window.originalScript = script;
         window.scriptMetadata = metadata;
-        window.minSize = new Vector2(500, 500); // 팝업 최소 크기 설정
+        window.minSize = new Vector2(300, 500);
+        window.maxSize = new Vector2(400, 1000);
         window.Show();
     }
 
@@ -35,7 +35,7 @@ public class OriginalScriptTodoPopup : EditorWindow
         // To-Do 추가 섹션
         EditorGUILayout.BeginVertical(GUI.skin.box);
         EditorGUILayout.LabelField("새 To-Do 추가:", EditorStyles.boldLabel);
-        string uniqueIdForInput = originalScript.name; // 입력 필드를 위한 고유 ID
+        string uniqueIdForInput = originalScript.name; 
 
         if (!newTodoDescriptions.ContainsKey(uniqueIdForInput))
         {
@@ -94,7 +94,7 @@ public class OriginalScriptTodoPopup : EditorWindow
                     scriptMetadata.todos.RemoveAt(i);
                     ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
                     Repaint(); // UI 업데이트
-                    GUIUtility.ExitGUI(); // 삭제 후 즉시 GUI 종료하여 오류 방지
+                    GUIUtility.ExitGUI(); 
                 }
                 EditorGUILayout.EndHorizontal();
             }

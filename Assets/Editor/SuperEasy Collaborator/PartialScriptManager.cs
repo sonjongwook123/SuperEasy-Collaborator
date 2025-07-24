@@ -1,8 +1,7 @@
-// PartialScriptManager.cs
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEditor;
-using System.Linq; // For LINQ operations
+using System.Linq; 
 
 [System.Serializable]
 public class TodoItem
@@ -20,15 +19,14 @@ public class TodoItem
 [System.Serializable]
 public class PartialScriptInfo
 {
-    public string partialFilePath;      // partial 스크립트의 현재 경로
-    public string originalScriptPath;   // 원본 스크립트의 경로
-    public string featureName;          // 담당 기능 이름 (새 필드)
+    public string partialFilePath;      
+    public string originalScriptPath;  
+    public string featureName;         
     public string authorName;
     public string creationDate;
-    public string memo;                 // partial 스크립트 개별 메모
-    public List<TodoItem> todos = new List<TodoItem>(); // partial 스크립트 개별 To-Do 리스트
+    public string memo;                 
+    public List<TodoItem> todos = new List<TodoItem>(); 
 
-    // 생성자에 featureName 추가
     public PartialScriptInfo(string partialPath, string originalPath, string feature, string author, string date)
     {
         partialFilePath = partialPath;
@@ -70,10 +68,8 @@ public class PartialScriptManager : ScriptableObject
         }
     }
 
-    // featureName 파라미터 추가
     public void AddPartialScript(string partialPath, string originalPath, string feature, string author, string date)
     {
-        // 중복 추가 방지
         if (!partialScripts.Any(info => info.partialFilePath == partialPath))
         {
             PartialScriptInfo newInfo = new PartialScriptInfo(partialPath, originalPath, feature, author, date);
@@ -93,7 +89,6 @@ public class PartialScriptManager : ScriptableObject
         }
     }
 
-    // 파일 경로가 변경될 경우 업데이트
     public void UpdatePartialScriptPath(string oldPath, string newPath)
     {
         var info = partialScripts.FirstOrDefault(i => i.partialFilePath == oldPath);
@@ -104,8 +99,7 @@ public class PartialScriptManager : ScriptableObject
             AssetDatabase.SaveAssets();
         }
     }
-
-    // SetDirtyAndSave 메서드 추가
+    
     public void SetDirtyAndSave()
     {
         EditorUtility.SetDirty(this);
