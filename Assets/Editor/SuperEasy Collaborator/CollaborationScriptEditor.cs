@@ -15,7 +15,7 @@ using System.Text.RegularExpressions; // Regex를 위해 추가
 
 public class CollaborationScriptEditor : EditorWindow
 {
-    private string authorName = "";
+    // private string authorName = ""; // 제거됨
     private Vector2 mainScrollPos;
     private Vector2 categoryScrollPos;
     private int selectedTab = 0; // 0: 스크립트, 1: Partial, 2: 카테고리 관리
@@ -26,7 +26,7 @@ public class CollaborationScriptEditor : EditorWindow
     private Dictionary<string, int> cachedPartialCounts; // 각 원본 스크립트의 Partial 개수 캐시
 
     // Partial 추가 시 사용할 기본 작성자 이름 (팝업에 전달)
-    private string currentAuthorNameForNewPartial = "";
+    // private string currentAuthorNameForNewPartial = ""; // 제거됨
 
     // 페이징 관련 변수
     private int currentPage = 0;
@@ -51,9 +51,9 @@ public class CollaborationScriptEditor : EditorWindow
     {
         // 초기 로딩 (에디터 활성화 시 한 번)
         LoadScriptData();
-        // 기본 만든이 이름 로드
-        authorName = EditorPrefs.GetString("CollaborationScriptEditor.AuthorName", Environment.UserName);
-        currentAuthorNameForNewPartial = authorName; // 초기값 설정
+        // 기본 만든이 이름 로드 및 설정 제거됨
+        // authorName = EditorPrefs.GetString("CollaborationScriptEditor.AuthorName", Environment.UserName);
+        // currentAuthorNameForNewPartial = authorName; // 초기값 설정 제거됨
 
         // 배너 이미지 로드
         LoadBannerImage();
@@ -128,13 +128,14 @@ public class CollaborationScriptEditor : EditorWindow
         selectedTab = GUILayout.Toolbar(selectedTab, new string[] { "스크립트 관리", "Partial 스크립트", "카테고리 관리" });
         EditorGUILayout.Space();
 
-        authorName = EditorGUILayout.TextField("현재 사용자 이름:", authorName);
-        if (GUI.changed)
-        {
-            EditorPrefs.SetString("CollaborationScriptEditor.AuthorName", authorName);
-            currentAuthorNameForNewPartial = authorName; // Partial 추가 팝업에 전달될 기본 작성자 이름 업데이트
-        }
-        EditorGUILayout.Space();
+        // authorName 필드 및 관련 로직 제거됨
+        // authorName = EditorGUILayout.TextField("현재 사용자 이름:", authorName);
+        // if (GUI.changed)
+        // {
+        //     EditorPrefs.SetString("CollaborationScriptEditor.AuthorName", authorName);
+        //     currentAuthorNameForNewPartial = authorName; // Partial 추가 팝업에 전달될 기본 작성자 이름 업데이트
+        // }
+        // EditorGUILayout.Space();
 
         switch (selectedTab)
         {
@@ -152,7 +153,6 @@ public class CollaborationScriptEditor : EditorWindow
 
     private void DrawScriptManagementTab()
     {
-        EditorGUILayout.LabelField("**스크립트 관리**", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
         // 카테고리 필터 버튼
@@ -225,10 +225,19 @@ public class CollaborationScriptEditor : EditorWindow
             int partialCount = cachedPartialCounts.ContainsKey(scriptPath) ? cachedPartialCounts[scriptPath] : 0;
             EditorGUILayout.LabelField($"Partial: {partialCount}개", GUILayout.Width(100));
 
+            // To-Do 진행 상황 표시
+            int completedTodos = metadata.todos.Count(t => t.isCompleted);
+            int totalTodos = metadata.todos.Count;
+            float todoProgress = totalTodos > 0 ? (float)completedTodos / totalTodos : 0f;
+            Rect progressRect = GUILayoutUtility.GetRect(80, EditorGUIUtility.singleLineHeight);
+            EditorGUI.ProgressBar(progressRect, todoProgress, $"{completedTodos}/{totalTodos}");
+            EditorGUILayout.Space(5);
+
             // Partial 스크립트 목록 보기 버튼
             if (GUILayout.Button("Partial 보기", GUILayout.Width(100)))
             {
-                PartialScriptPopup.ShowPartialListForScript(script, currentAuthorNameForNewPartial); // 작성자 이름 전달
+                // Environment.UserName을 직접 전달
+                PartialScriptPopup.ShowPartialListForScript(script, Environment.UserName); 
             }
 
             // To-Do 목록 버튼
@@ -278,7 +287,6 @@ public class CollaborationScriptEditor : EditorWindow
 
     private void DrawPartialScriptTab()
     {
-        EditorGUILayout.LabelField("**모든 Partial 스크립트 관리**", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
         mainScrollPos = EditorGUILayout.BeginScrollView(mainScrollPos, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
@@ -293,11 +301,11 @@ public class CollaborationScriptEditor : EditorWindow
         foreach (PartialScriptInfo info in PartialScriptManager.Instance.partialScripts)
         {
             EditorGUILayout.BeginVertical(GUI.skin.box);
-            EditorGUILayout.LabelField($"**파일:** {Path.GetFileName(info.partialFilePath)}", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField($"**원본 스크립트:** {Path.GetFileName(info.originalScriptPath)}");
-            EditorGUILayout.LabelField($"**담당 기능:** {info.featureName}");
-            EditorGUILayout.LabelField($"**작성자:** {info.authorName}");
-            EditorGUILayout.LabelField($"**작성일:** {info.creationDate}");
+            EditorGUILayout.LabelField($"파일: {Path.GetFileName(info.partialFilePath)}", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField($"원본 스크립트: {Path.GetFileName(info.originalScriptPath)}");
+            EditorGUILayout.LabelField($"담당 기능: {info.featureName}");
+            EditorGUILayout.LabelField($"작성자: {info.authorName}");
+            EditorGUILayout.LabelField($"작성일: {info.creationDate}");
 
             // 메모 기능
             EditorGUILayout.LabelField("메모:");
@@ -360,7 +368,6 @@ public class CollaborationScriptEditor : EditorWindow
 
     private void DrawCategoryManagementTab()
     {
-        EditorGUILayout.LabelField("**카테고리 관리**", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
         categoryScrollPos = EditorGUILayout.BeginScrollView(categoryScrollPos, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
@@ -433,6 +440,13 @@ public class CollaborationScriptEditor : EditorWindow
         string originalFileName = Path.GetFileNameWithoutExtension(originalPath);
         string originalDirectory = Path.GetDirectoryName(originalPath);
 
+        // Ensure the original script's class is partial
+        if (!EnsureOriginalScriptIsPartial(originalScript))
+        {
+            EditorUtility.DisplayDialog("오류", "원본 스크립트의 클래스를 partial로 변경하는 데 실패했습니다.", "확인");
+            return false;
+        }
+
         // Partial 스크립트 파일 이름 규칙: OriginalFileName.FeatureName.AuthorName.partial.cs
         string partialFileName = $"{originalFileName}.{featureName}.{authorName}.partial.cs";
         string partialFilePath = Path.Combine(originalDirectory, partialFileName);
@@ -473,6 +487,39 @@ public partial class {originalScript.name}
         PartialScriptManager.Instance.AddPartialScript(partialFilePath, originalPath, featureName, authorName, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         Debug.Log($"Partial 스크립트 '{partialFileName}' 생성 및 등록 완료.");
         return true;
+    }
+
+    // Helper to ensure original script is partial
+    private static bool EnsureOriginalScriptIsPartial(MonoScript originalScript)
+    {
+        string originalScriptPath = AssetDatabase.GetAssetPath(originalScript);
+        string originalCode = File.ReadAllText(originalScriptPath);
+
+        SyntaxTree originalTree = CSharpSyntaxTree.ParseText(originalCode);
+        CompilationUnitSyntax originalRoot = originalTree.GetCompilationUnitRoot();
+
+        ClassDeclarationSyntax originalClass = originalRoot.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .FirstOrDefault(c => c.Identifier.Text == originalScript.name);
+
+        if (originalClass == null)
+        {
+            Debug.LogError($"원본 스크립트 '{originalScript.name}'에서 클래스 선언을 찾을 수 없습니다. partial 키워드를 추가할 수 없습니다.");
+            return false;
+        }
+
+        if (!originalClass.Modifiers.Any(SyntaxKind.PartialKeyword))
+        {
+            ClassDeclarationSyntax newOriginalClass = originalClass.AddModifiers(SyntaxFactory.Token(SyntaxKind.PartialKeyword));
+            SyntaxNode newRoot = originalRoot.ReplaceNode(originalClass, newOriginalClass);
+            string newOriginalCode = newRoot.NormalizeWhitespace().ToFullString();
+
+            File.WriteAllText(originalScriptPath, newOriginalCode);
+            AssetDatabase.ImportAsset(originalScriptPath);
+            Debug.Log($"원본 스크립트 '{originalScript.name}'에 'partial' 키워드를 추가했습니다.");
+            return true;
+        }
+        return true; // Already partial
     }
 
     // Partial 스크립트 활성화/비활성화

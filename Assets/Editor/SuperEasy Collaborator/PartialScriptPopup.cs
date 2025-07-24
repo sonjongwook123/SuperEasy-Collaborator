@@ -88,10 +88,10 @@ public class PartialScriptPopup : EditorWindow
             foreach (PartialScriptInfo info in filteredPartials)
             {
                 EditorGUILayout.BeginVertical(GUI.skin.box);
-                EditorGUILayout.LabelField($"**파일:** {Path.GetFileName(info.partialFilePath)}", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField($"**기능명:** {info.featureName}"); // 기능명 표시
-                EditorGUILayout.LabelField($"**작성자:** {info.authorName}");
-                EditorGUILayout.LabelField($"**작성일:** {info.creationDate}");
+                EditorGUILayout.LabelField($"파일: {Path.GetFileName(info.partialFilePath)}", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"기능명: {info.featureName}"); // 기능명 표시
+                EditorGUILayout.LabelField($"작성자: {info.authorName}");
+                EditorGUILayout.LabelField($"작성일: {info.creationDate}");
 
                 // Partial 스크립트 활성화/비활성화
                 bool isActive = Path.GetExtension(info.partialFilePath) == ".cs";
@@ -187,6 +187,7 @@ public class PartialScriptPopup : EditorWindow
                 todos.Add(new TodoItem(newTodoDesc));
                 PartialScriptManager.Instance.SetDirtyAndSave(); // PartialScriptManager 인스턴스를 통해 저장
                 newTodoDescriptions[uniqueIdForInput] = "";
+                Repaint(); // UI 업데이트
             }
         }
         EditorGUILayout.EndHorizontal();
