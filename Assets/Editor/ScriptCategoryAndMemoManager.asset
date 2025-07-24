@@ -7893,7 +7893,9 @@ MonoBehaviour:
     todos: []
   - scriptPath: Packages/com.unity.visualscripting/Editor/VisualScripting.Core/Windows/AboutWindow/AboutPluginsPage.cs
     category: Uncategorized
-    memo: 
+    memo: 'eadfsfdfsdf
+
+'
     todos: []
   - scriptPath: Packages/com.unity.visualscripting/Editor/VisualScripting.Core/Windows/AboutWindow/AcknowledgementPage.cs
     category: Uncategorized
@@ -12628,6 +12630,10 @@ MonoBehaviour:
     memo: 
     todos: []
   - scriptPath: Assets/move.cs
+    category: Uncategorized
+    memo: 
+    todos: []
+  - scriptPath: "Assets/move.\uC810\uD504\uCD94\uAC00.partial.cs"
     category: Uncategorized
     memo: 
     todos: []

@@ -57,67 +57,46 @@ public class PartialScriptPopup : EditorWindow
                 // CollaborationScriptEditor의 static 메서드 호출
                 if (CollaborationScriptEditor.CreateNewPartialScript(originalScript, newPartialFeatureName, newPartialAuthorName))
                 {
-                    newPartialFeatureName = ""; // 추가 성공 시 필드 초기화
-                    // 창 데이터 새로고침 (PartialScriptManager의 정보가 업데이트됨)
-                    Repaint(); // UI 업데이트를 위해 Repaint 호출
+                    newPartialFeatureName = ""; // 성공 시 필드 초기화
+                    // Partial 스크립트가 추가되면 CollaborationScriptEditor의 Partial Count를 갱신
+                    CollaborationScriptEditor editorWindow = GetWindow<CollaborationScriptEditor>();
+                    if (editorWindow != null)
+                    {
+                        editorWindow.LoadScriptData();
+                    }
+                    AssetDatabase.Refresh();
+                    Repaint(); // 현재 팝업 UI 업데이트
                 }
             }
         }
         GUI.backgroundColor = Color.white;
         EditorGUILayout.EndVertical();
         EditorGUILayout.Space();
-        // ----------------------------------------------------
+        // --------------------------------------------------------
 
         List<PartialScriptInfo> filteredPartials = PartialScriptManager.Instance.partialScripts
             .Where(p => p.originalScriptPath == AssetDatabase.GetAssetPath(originalScript))
             .ToList();
 
-        // ------------------ 모두 합치기 버튼 ------------------
-        GUI.backgroundColor = Color.green;
-        if (GUILayout.Button("✨ 모든 Partial 스크립트 통합 (원본 스크립트로 합치기)", GUILayout.Height(40)))
-        {
-            if (filteredPartials.Count == 0)
-            {
-                EditorUtility.DisplayDialog("알림", "통합할 Partial 스크립트가 없습니다.", "확인");
-            }
-            else if (EditorUtility.DisplayDialog("통합 확인",
-                                                $"'{originalScript.name}'와 관련된 모든 Partial 스크립트 ({filteredPartials.Count}개)를 원본 스크립트로 통합하시겠습니까? 통합된 Partial 스크립트 파일은 삭제됩니다.",
-                                                "통합", "취소"))
-            {
-                if (CollaborationScriptEditor.IntegrateSelectedPartialScripts(filteredPartials))
-                {
-                    // 통합 성공 후 창 닫기 또는 UI 새로고침
-                    // CollaborationScriptEditor.IntegrateSelectedPartialScripts에서 LoadScriptData 호출하므로 여기서 별도 로딩 불필요
-                    Close(); // 팝업 닫기
-                }
-            }
-        }
-        GUI.backgroundColor = Color.white;
-        EditorGUILayout.Space();
-        // ----------------------------------------------------
-
-
-        EditorGUILayout.LabelField("현재 연결된 Partial 스크립트 목록:", EditorStyles.boldLabel);
         if (filteredPartials.Count == 0)
         {
-            EditorGUILayout.HelpBox($"'{originalScript.name}'에 연결된 Partial 스크립트가 없습니다.", MessageType.Info);
+            EditorGUILayout.LabelField("관련 Partial 스크립트가 없습니다.");
         }
         else
         {
             scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
-            foreach (var info in filteredPartials)
+            foreach (PartialScriptInfo info in filteredPartials)
             {
                 EditorGUILayout.BeginVertical(GUI.skin.box);
-                EditorGUILayout.LabelField($"**Partial File:** {Path.GetFileName(info.partialFilePath)}", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField($"**담당 기능:** {info.featureName}"); // 새 필드 표시
+                EditorGUILayout.LabelField($"**파일:** {Path.GetFileName(info.partialFilePath)}", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"**기능명:** {info.featureName}"); // 기능명 표시
                 EditorGUILayout.LabelField($"**작성자:** {info.authorName}");
-                EditorGUILayout.LabelField($"**생성일:** {info.creationDate}");
+                EditorGUILayout.LabelField($"**작성일:** {info.creationDate}");
 
-                // 활성화/비활성화 버튼
-                bool isActive = Path.GetExtension(info.partialFilePath).Equals(".cs", StringComparison.OrdinalIgnoreCase);
+                // Partial 스크립트 활성화/비활성화
+                bool isActive = Path.GetExtension(info.partialFilePath) == ".cs";
                 string buttonText = isActive ? "🔴 비활성화" : "🟢 활성화";
                 GUI.backgroundColor = isActive ? Color.red : Color.green;
-
                 if (GUILayout.Button(buttonText))
                 {
                     TogglePartialScriptActiveState(info);
@@ -134,36 +113,40 @@ public class PartialScriptPopup : EditorWindow
                 }
 
                 // To-Do 리스트 (CollaborationScriptEditor에서 가져옴)
-                DrawTodoListUI(info.todos, info.partialFilePath, PartialScriptManager.Instance);
+                DrawTodoSection(info.todos, info, "partial_" + info.partialFilePath); // Unique ID for each partial's To-Do
 
                 // 개별 통합 버튼
-                if (GUILayout.Button("➡️ 이 Partial만 통합 (파일 삭제)", GUILayout.Width(250)))
+                GUI.backgroundColor = Color.yellow;
+                if (GUILayout.Button($"⬆️ '{Path.GetFileName(info.partialFilePath)}' 통합", GUILayout.Height(25)))
                 {
-                    if (EditorUtility.DisplayDialog("개별 통합 확인",
-                                                    $"Partial 스크립트 '{Path.GetFileName(info.partialFilePath)}'를 원본 스크립트로 통합하시겠습니까? 통합된 Partial 스크립트 파일은 삭제됩니다.",
-                                                    "통합", "취소"))
+                    if (EditorUtility.DisplayDialog("Partial 스크립트 통합", $"'{Path.GetFileName(info.partialFilePath)}' 내용을 '{originalScript.name}'에 통합하시겠습니까? 통합 후 Partial 스크립트 파일은 삭제됩니다.", "통합", "취소"))
                     {
-                        if (CollaborationScriptEditor.IntegrateSelectedPartialScripts(new List<PartialScriptInfo> { info }))
+                        CollaborationScriptEditor.IntegrateSelectedPartialScripts(originalScript, new List<PartialScriptInfo> { info });
+                        // 통합 후 Partial 스크립트 목록 새로고침
+                        Repaint();
+                        // CollaborationScriptEditor의 데이터도 새로고침 (Partial Count 등)
+                        CollaborationScriptEditor editorWindow = GetWindow<CollaborationScriptEditor>();
+                        if (editorWindow != null)
                         {
-                            Repaint(); // UI 업데이트
+                            editorWindow.LoadScriptData();
                         }
                     }
                 }
+                GUI.backgroundColor = Color.white;
 
-                // 제거 버튼 (파일 삭제)
-                if (GUILayout.Button("🗑️ 제거 (파일 삭제)", GUILayout.Width(150)))
+                // 삭제 버튼
+                GUI.backgroundColor = Color.red;
+                if (GUILayout.Button("🗑️ 삭제", GUILayout.Height(25)))
                 {
-                    if (EditorUtility.DisplayDialog("Partial 제거 확인",
-                                                    $"Partial 스크립트 '{Path.GetFileName(info.partialFilePath)}'를 정말 제거하시겠습니까? 관련 파일도 함께 삭제됩니다.",
-                                                    "제거", "취소"))
+                    if (EditorUtility.DisplayDialog("Partial 스크립트 삭제", $"'{Path.GetFileName(info.partialFilePath)}'를 정말로 삭제하시겠습니까?", "삭제", "취소"))
                     {
                         DeletePartialScriptFileAndInfo(info);
                     }
                 }
-
+                GUI.backgroundColor = Color.white;
 
                 EditorGUILayout.EndVertical();
-                EditorGUILayout.Space(5);
+                EditorGUILayout.Space();
             }
             EditorGUILayout.EndScrollView();
         }
@@ -175,72 +158,77 @@ public class PartialScriptPopup : EditorWindow
         }
     }
 
-    // CollaborationScriptEditor에서 복사해온 To-Do UI 그리기 함수
-    private void DrawTodoListUI(List<TodoItem> todos, string uniqueIdForInput, ScriptableObject managerToSave)
+    // To-Do 섹션을 그리는 메서드 (ScriptCategoryAndMemoManager에서도 사용될 수 있도록 static으로 분리)
+    // uniqueIdForInput은 텍스트 필드의 고유성을 위해 사용 (Partial 스크립트 경로 또는 원본 스크립트 경로)
+    private void DrawTodoSection(List<TodoItem> todos, PartialScriptInfo partialInfo, string uniqueIdForInput)
     {
-        EditorGUILayout.LabelField("To-Do List:", EditorStyles.boldLabel);
+        EditorGUILayout.BeginVertical(GUI.skin.box);
+        EditorGUILayout.LabelField("To-Do 목록", EditorStyles.boldLabel);
 
+        // 진행 상태 표시
         int completedTodos = todos.Count(t => t.isCompleted);
-        int totalTodos = todos.Count;
-        string todoStatus = totalTodos > 0 ? $"({completedTodos}/{totalTodos})" : "(0/0)";
-        float progress = totalTodos > 0 ? (float)completedTodos / totalTodos : 0f;
-
-        Rect progressBarRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
-        EditorGUI.ProgressBar(progressBarRect, progress, $"진행 상태: {todoStatus}");
+        string todoStatus = $"{completedTodos}/{todos.Count} 완료";
+        float progress = todos.Count > 0 ? (float)completedTodos / todos.Count : 0f;
+        EditorGUI.ProgressBar(EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight), progress, $"진행 상태: {todoStatus}");
         EditorGUILayout.Space(5);
 
-        for (int i = 0; i < todos.Count; i++)
-        {
-            EditorGUILayout.BeginHorizontal();
-            bool newIsCompleted = EditorGUILayout.Toggle(todos[i].isCompleted, GUILayout.Width(20));
-            if (newIsCompleted != todos[i].isCompleted)
-            {
-                todos[i].isCompleted = newIsCompleted;
-                EditorUtility.SetDirty(managerToSave);
-                AssetDatabase.SaveAssets();
-            }
-            EditorGUILayout.LabelField(todos[i].description, todos[i].isCompleted ? EditorStyles.miniLabel : EditorStyles.label);
-            if (GUILayout.Button("🗑️", GUILayout.Width(25)))
-            {
-                todos.RemoveAt(i);
-                EditorUtility.SetDirty(managerToSave);
-                AssetDatabase.SaveAssets();
-                GUIUtility.ExitGUI();
-            }
-            EditorGUILayout.EndHorizontal();
-        }
-
+        // 새 To-Do 추가 필드
+        EditorGUILayout.BeginHorizontal();
         if (!newTodoDescriptions.ContainsKey(uniqueIdForInput))
         {
             newTodoDescriptions[uniqueIdForInput] = "";
         }
-        EditorGUILayout.BeginHorizontal();
-        newTodoDescriptions[uniqueIdForInput] = EditorGUILayout.TextField("새 To-Do:", newTodoDescriptions[uniqueIdForInput]);
+        newTodoDescriptions[uniqueIdForInput] = EditorGUILayout.TextField(newTodoDescriptions[uniqueIdForInput]);
         if (GUILayout.Button("➕ 추가", GUILayout.Width(60)))
         {
             string newTodoDesc = newTodoDescriptions[uniqueIdForInput];
             if (!string.IsNullOrWhiteSpace(newTodoDesc))
             {
                 todos.Add(new TodoItem(newTodoDesc));
-                EditorUtility.SetDirty(managerToSave);
-                AssetDatabase.SaveAssets();
+                PartialScriptManager.Instance.SetDirtyAndSave(); // PartialScriptManager 인스턴스를 통해 저장
                 newTodoDescriptions[uniqueIdForInput] = "";
             }
         }
         EditorGUILayout.EndHorizontal();
+
+        // To-Do 목록 표시
+        scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.MinHeight(100), GUILayout.MaxHeight(200));
+        for (int i = 0; i < todos.Count; i++)
+        {
+            EditorGUILayout.BeginHorizontal(GUI.skin.box);
+            bool newIsCompleted = EditorGUILayout.Toggle(todos[i].isCompleted, GUILayout.Width(20));
+            if (newIsCompleted != todos[i].isCompleted)
+            {
+                todos[i].isCompleted = newIsCompleted;
+                PartialScriptManager.Instance.SetDirtyAndSave(); // PartialScriptManager 인스턴스를 통해 저장
+                Repaint(); // UI 업데이트
+            }
+            EditorGUILayout.LabelField(todos[i].description, todos[i].isCompleted ? EditorStyles.miniLabel : EditorStyles.label);
+            if (GUILayout.Button("🗑️", GUILayout.Width(25)))
+            {
+                todos.RemoveAt(i);
+                PartialScriptManager.Instance.SetDirtyAndSave(); // PartialScriptManager 인스턴스를 통해 저장
+                Repaint(); // UI 업데이트
+                GUIUtility.ExitGUI(); // 삭제 후 즉시 GUI 종료하여 오류 방지
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+        EditorGUILayout.EndScrollView();
+        EditorGUILayout.EndVertical();
     }
 
+
+    // CollaborationScriptEditor에서 복사해온 활성화/비활성화 로직
     private void TogglePartialScriptActiveState(PartialScriptInfo info)
     {
         string oldPath = info.partialFilePath;
-        bool currentlyActive = Path.GetExtension(oldPath).Equals(".cs", StringComparison.OrdinalIgnoreCase);
         string newPath;
 
-        if (currentlyActive)
+        if (Path.GetExtension(oldPath) == ".cs") // 현재 활성화 상태 -> 비활성화로 변경
         {
             newPath = Path.ChangeExtension(oldPath, ".disabled");
         }
-        else
+        else // 현재 비활성화 상태 -> 활성화로 변경
         {
             newPath = Path.ChangeExtension(oldPath, ".cs");
         }
@@ -276,6 +264,9 @@ public class PartialScriptPopup : EditorWindow
         Repaint(); // UI 업데이트
         // CollaborationScriptEditor의 데이터도 새로고침 (Partial Count 등)
         CollaborationScriptEditor window = GetWindow<CollaborationScriptEditor>();
-        window.LoadScriptData();
+        if (window != null)
+        {
+            window.LoadScriptData();
+        }
     }
 }
