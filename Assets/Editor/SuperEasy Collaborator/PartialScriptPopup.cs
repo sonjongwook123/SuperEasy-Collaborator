@@ -103,6 +103,25 @@ public class PartialScriptPopup : EditorWindow
                 }
                 GUI.backgroundColor = Color.white;
 
+                // **새로운 스크립트 편집 버튼 추가**
+                GUI.backgroundColor = Color.blue; // 파란색 버튼으로 설정
+                if (GUILayout.Button("✏️ 스크립트 편집", GUILayout.Height(25)))
+                {
+                    // partialFilePath를 사용하여 MonoScript를 로드
+                    MonoScript partialMonoScript = AssetDatabase.LoadAssetAtPath<MonoScript>(info.partialFilePath);
+                    if (partialMonoScript != null)
+                    {
+                        // MonoScript를 Open하는 것은 Unity의 기본 스크립트 에디터를 엽니다.
+                        AssetDatabase.OpenAsset(partialMonoScript);
+                    }
+                    else
+                    {
+                        EditorUtility.DisplayDialog("오류", "Partial 스크립트 파일을 찾을 수 없습니다.", "확인");
+                    }
+                }
+                GUI.backgroundColor = Color.white;
+                // -------------------------------------------------
+
                 // 메모 기능
                 EditorGUILayout.LabelField("메모:");
                 string newMemo = EditorGUILayout.TextArea(info.memo, GUILayout.Height(40));

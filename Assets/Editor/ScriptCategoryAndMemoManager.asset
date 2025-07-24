@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   categories:
   - Uncategorized
-  - "\u3141\u3147\u3141\u3134\u3147\u3141"
   - "\uACF5\uACA9 \uAD00\uB828"
   - "\uCE90\uB9AD\uD130 \uAD00\uB828"
   scriptMetadataList:
@@ -12633,7 +12632,7 @@ MonoBehaviour:
     memo: 
     todos: []
   - scriptPath: Assets/move.cs
-    category: "\uCE90\uB9AD\uD130 \uAD00\uB828"
+    category: "\uACF5\uACA9 \uAD00\uB828"
     memo: "\uC774\uAC70 \uC5BC\uB989 \uD574\uC57C\uD568"
     todos: []
   - scriptPath: "Assets/move.\uC810\uD504\uCD94\uAC00.partial.cs"
@@ -12652,3 +12651,9 @@ MonoBehaviour:
     category: Uncategorized
     memo: 
     todos: []
+  - scriptPath: Assets/ch.cs
+    category: "\uACF5\uACA9 \uAD00\uB828"
+    memo: 
+    todos:
+    - description: adasdsad
+      isCompleted: 1

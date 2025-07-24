@@ -19,7 +19,7 @@ public class OriginalScriptTodoPopup : EditorWindow
         OriginalScriptTodoPopup window = GetWindow<OriginalScriptTodoPopup>($"To-Do List for {script.name}");
         window.originalScript = script;
         window.scriptMetadata = metadata;
-        window.minSize = new Vector2(1000, 500); // 팝업 최소 크기 설정
+        window.minSize = new Vector2(500, 500); // 팝업 최소 크기 설정
         window.Show();
     }
 
@@ -30,8 +30,6 @@ public class OriginalScriptTodoPopup : EditorWindow
             EditorGUILayout.LabelField("원본 스크립트 또는 메타데이터가 선택되지 않았습니다.");
             return;
         }
-
-        EditorGUILayout.LabelField($"**'{originalScript.name}' To-Do 목록**", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
         // To-Do 추가 섹션
@@ -91,7 +89,7 @@ public class OriginalScriptTodoPopup : EditorWindow
                     Repaint(); // UI 업데이트
                 }
                 EditorGUILayout.LabelField(scriptMetadata.todos[i].description, scriptMetadata.todos[i].isCompleted ? EditorStyles.miniLabel : EditorStyles.label);
-                if (GUILayout.Button("🗑️", GUILayout.Width(25)))
+                if (GUILayout.Button("삭제", GUILayout.Width(25)))
                 {
                     scriptMetadata.todos.RemoveAt(i);
                     ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
@@ -104,7 +102,7 @@ public class OriginalScriptTodoPopup : EditorWindow
         }
 
         EditorGUILayout.Space();
-        if (GUILayout.Button("닫기", GUILayout.Height(30)))
+        if (GUILayout.Button("닫기",  GUILayout.Height(30)))
         {
             Close();
         }

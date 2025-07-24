@@ -128,7 +128,7 @@ public class CollaborationScriptEditor : EditorWindow
         if (bannerImage != null)
         {
             Rect bannerRect = GUILayoutUtility.GetRect(bannerWidth, bannerHeight, GUILayout.ExpandWidth(true));
-            GUI.DrawTexture(bannerRect, bannerImage, ScaleMode.ScaleAndCrop);
+            GUI.DrawTexture(bannerRect, bannerImage, ScaleMode.ScaleToFit);
             EditorGUILayout.Space(10);
         }
 
@@ -218,37 +218,39 @@ public class CollaborationScriptEditor : EditorWindow
             EditorGUILayout.BeginVertical(GUI.skin.box);
             EditorGUILayout.BeginHorizontal();
             
+            // Script ObjectField - 고정 너비 유지
             EditorGUILayout.ObjectField(script, typeof(MonoScript), false, GUILayout.Width(200));
             
-            // 카테고리 드롭다운
+            // 카테고리 드롭다운 - 적절히 너비를 확장하거나 고정
             int currentCatIndex = ScriptCategoryAndMemoManager.Instance.categories.IndexOf(metadata.category);
-            int selectedCatIndex = EditorGUILayout.Popup(currentCatIndex, ScriptCategoryAndMemoManager.Instance.categories.ToArray(), GUILayout.Width(150));
+            int selectedCatIndex = EditorGUILayout.Popup(currentCatIndex, ScriptCategoryAndMemoManager.Instance.categories.ToArray(), GUILayout.Width(150)); // Fixed width for dropdown
             if (selectedCatIndex != currentCatIndex)
             {
                 metadata.category = ScriptCategoryAndMemoManager.Instance.categories[selectedCatIndex];
                 ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
             }
 
-            // Partial 스크립트 개수 표시
+            // Partial 스크립트 개수 표시 - 고정 너비
             int partialCount = cachedPartialCounts.ContainsKey(scriptPath) ? cachedPartialCounts[scriptPath] : 0;
             EditorGUILayout.LabelField($"Partial: {partialCount}개", GUILayout.Width(100));
 
-            // To-Do 진행 상황 표시
+            // To-Do 진행 상황 표시 - 가로 길이에 맞춰 확장
             int completedTodos = metadata.todos.Count(t => t.isCompleted);
             int totalTodos = metadata.todos.Count;
             float todoProgress = totalTodos > 0 ? (float)completedTodos / totalTodos : 0f;
-            Rect progressRect = GUILayoutUtility.GetRect(80, EditorGUIUtility.singleLineHeight);
+            // Use GUILayout.ExpandWidth(true) for progress bar to fill available space
+            Rect progressRect = GUILayoutUtility.GetRect(80, EditorGUIUtility.singleLineHeight, GUILayout.ExpandWidth(true)); 
             EditorGUI.ProgressBar(progressRect, todoProgress, $"{completedTodos}/{totalTodos}");
             EditorGUILayout.Space(5);
 
-            // Partial 스크립트 목록 보기 버튼
+            // Partial 스크립트 목록 보기 버튼 - 고정 너비
             if (GUILayout.Button("Partial 보기", GUILayout.Width(100)))
             {
                 // Environment.UserName을 직접 전달
                 PartialScriptPopup.ShowPartialListForScript(script, Environment.UserName); 
             }
 
-            // To-Do 목록 버튼
+            // To-Do 목록 버튼 - 고정 너비
             if (GUILayout.Button("To-Do 목록", GUILayout.Width(100)))
             {
                 OriginalScriptTodoPopup.ShowWindow(script, metadata);
@@ -256,7 +258,7 @@ public class CollaborationScriptEditor : EditorWindow
 
             EditorGUILayout.EndHorizontal();
 
-            // 메모 필드
+            /* 메모 필드 (주석 처리됨)
             EditorGUILayout.LabelField("메모:");
             string newMemo = EditorGUILayout.TextArea(metadata.memo, GUILayout.Height(30));
             if (newMemo != metadata.memo)
@@ -264,6 +266,7 @@ public class CollaborationScriptEditor : EditorWindow
                 metadata.memo = newMemo;
                 ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
             }
+            */
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space(5);
