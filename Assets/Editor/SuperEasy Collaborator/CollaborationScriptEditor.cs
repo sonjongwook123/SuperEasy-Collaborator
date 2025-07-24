@@ -42,10 +42,11 @@ public class CollaborationScriptEditor : EditorWindow
     
     private string newCategoryName = "";
 
-    [MenuItem("Tools/Collaboration Script Editor")]
+    [MenuItem("Tools/SuperEasy Collaborator by.SJW")]
     public static void ShowWindow()
     {
-        GetWindow<CollaborationScriptEditor>("협업 스크립트 에디터");
+        CollaborationScriptEditor window = GetWindow<CollaborationScriptEditor>("SuperEasy Collaborator by.SJW");
+        window.minSize = new Vector2(1000, 600);
     }
 
     void OnEnable()
@@ -238,6 +239,9 @@ public class CollaborationScriptEditor : EditorWindow
             int completedTodos = metadata.todos.Count(t => t.isCompleted);
             int totalTodos = metadata.todos.Count;
             float todoProgress = totalTodos > 0 ? (float)completedTodos / totalTodos : 0f;
+            // To-Do 진행 상황 레이블 추가
+            EditorGUILayout.LabelField("To-Do 진행도:", GUILayout.Width(100)); // "To-Do 진행도:" 텍스트 추가
+            
             // Use GUILayout.ExpandWidth(true) for progress bar to fill available space
             Rect progressRect = GUILayoutUtility.GetRect(80, EditorGUIUtility.singleLineHeight, GUILayout.ExpandWidth(true)); 
             EditorGUI.ProgressBar(progressRect, todoProgress, $"{completedTodos}/{totalTodos}");

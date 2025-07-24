@@ -89,7 +89,7 @@ public class OriginalScriptTodoPopup : EditorWindow
                     Repaint(); // UI 업데이트
                 }
                 EditorGUILayout.LabelField(scriptMetadata.todos[i].description, scriptMetadata.todos[i].isCompleted ? EditorStyles.miniLabel : EditorStyles.label);
-                if (GUILayout.Button("삭제", GUILayout.Width(25)))
+                if (GUILayout.Button("삭제", GUILayout.Width(45)))
                 {
                     scriptMetadata.todos.RemoveAt(i);
                     ScriptCategoryAndMemoManager.Instance.SetDirtyAndSave();
