@@ -12,13 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e37c4b5d7ba02704a80059891c78a73f, type: 3}
   m_Name: PartialScriptManager
   m_EditorClassIdentifier: 
-  partialScripts:
-  - partialFilePath: "Assets/move.\uC810\uD504\uCD94\uAC00.partial.cs"
-    originalScriptPath: Assets/move.cs
-    featureName: "\uC810\uD504 \uCD94\uAC00"
-    authorName: "\uC190\uC885\uC6B1"
-    creationDate: 2025-07-24 12:17
-    memo: 
-    todos:
-    - description: "\u3137\u3147\u3137\u3148\u3131"
-      isCompleted: 0
+  partialScripts: []

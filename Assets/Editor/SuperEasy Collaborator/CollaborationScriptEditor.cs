@@ -155,16 +155,22 @@ public class CollaborationScriptEditor : EditorWindow
         EditorGUILayout.LabelField("**스크립트 관리**", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
-        // 카테고리 필터 드롭다운
+        // 카테고리 필터 버튼
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("카테고리 필터:", GUILayout.Width(100));
-        List<string> categories = ScriptCategoryAndMemoManager.Instance.categories;
-        int currentCategoryIndex = categories.IndexOf(selectedCategoryFilter);
-        int newCategoryIndex = EditorGUILayout.Popup(currentCategoryIndex, categories.ToArray());
-        if (newCategoryIndex != currentCategoryIndex)
+
+        List<string> categories = new List<string>(ScriptCategoryAndMemoManager.Instance.categories);
+        categories.Insert(0, "전체보기"); // "전체보기" 옵션을 맨 앞에 추가
+
+        foreach (string category in categories)
         {
-            selectedCategoryFilter = categories[newCategoryIndex];
-            currentPage = 0; // 필터 변경 시 첫 페이지로 이동
+            GUI.enabled = (selectedCategoryFilter != category); // 현재 선택된 카테고리는 비활성화
+            if (GUILayout.Button(category, GUILayout.ExpandWidth(false)))
+            {
+                selectedCategoryFilter = category;
+                currentPage = 0; // 필터 변경 시 첫 페이지로 이동
+            }
+            GUI.enabled = true; // GUI 활성화 상태 복원
         }
         EditorGUILayout.EndHorizontal();
         EditorGUILayout.Space();
@@ -685,6 +691,7 @@ public partial class {originalScript.name}
         }
         return null; // 그 외의 멤버 타입
     }
+
 
     private void LoadBannerImage()
     {
