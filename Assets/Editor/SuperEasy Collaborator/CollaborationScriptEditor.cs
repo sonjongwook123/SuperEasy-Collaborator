@@ -39,7 +39,8 @@ public class CollaborationScriptEditor : EditorWindow
     private Texture2D bannerImage;
     private const int bannerWidth = 1000;
     private const int bannerHeight = 112;
-
+    
+    private string newCategoryName = "";
 
     [MenuItem("Tools/Collaboration Script Editor")]
     public static void ShowWindow()
@@ -97,6 +98,13 @@ public class CollaborationScriptEditor : EditorWindow
             {
                 continue;
             }
+            // [MODIFICATION START]
+            // Add a check to exclude files explicitly ending with ".partial.cs"
+            if (scriptPath.EndsWith(".partial.cs", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            // [MODIFICATION END]
 
             MonoScript script = AssetDatabase.LoadAssetAtPath<MonoScript>(scriptPath);
             // 스크립트가 유효하고, 실제로 파일이 존재하는지 확인하여 목록에 추가
@@ -410,7 +418,7 @@ public class CollaborationScriptEditor : EditorWindow
 
         // 새 카테고리 추가
         EditorGUILayout.BeginHorizontal();
-        string newCategoryName = EditorGUILayout.TextField("새 카테고리 이름:");
+        newCategoryName = EditorGUILayout.TextField("",newCategoryName);
         if (GUILayout.Button("➕ 카테고리 추가", GUILayout.Width(120)))
         {
             if (string.IsNullOrWhiteSpace(newCategoryName))

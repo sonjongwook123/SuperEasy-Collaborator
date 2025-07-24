@@ -53,11 +53,17 @@ public class ScriptCategoryAndMemoManager : ScriptableObject
 
     public void AddCategory(string newCategory)
     {
+        Debug.Log($"Attempting to add category: '{newCategory}'");
         if (!categories.Contains(newCategory) && !string.IsNullOrWhiteSpace(newCategory))
         {
             categories.Add(newCategory);
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
+            Debug.Log($"Successfully added category: '{newCategory}'. Current categories: {string.Join(", ", categories)}");
+        }
+        else
+        {
+            Debug.Log($"Did not add category: '{newCategory}'. Already exists or is invalid (empty/whitespace).");
         }
     }
 

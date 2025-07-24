@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   categories:
   - Uncategorized
+  - "\u3141\u3147\u3141\u3134\u3147\u3141"
+  - "\uACF5\uACA9 \uAD00\uB828"
+  - "\uCE90\uB9AD\uD130 \uAD00\uB828"
   scriptMetadataList:
   - scriptPath: Assets/Editor/SuperEasy Collaborator/CollaborationScriptEditor.cs
     category: Uncategorized
@@ -12630,8 +12633,8 @@ MonoBehaviour:
     memo: 
     todos: []
   - scriptPath: Assets/move.cs
-    category: Uncategorized
-    memo: 
+    category: "\uCE90\uB9AD\uD130 \uAD00\uB828"
+    memo: "\uC774\uAC70 \uC5BC\uB989 \uD574\uC57C\uD568"
     todos: []
   - scriptPath: "Assets/move.\uC810\uD504\uCD94\uAC00.partial.cs"
     category: Uncategorized
@@ -12642,6 +12645,10 @@ MonoBehaviour:
     memo: 
     todos: []
   - scriptPath: 
+    category: Uncategorized
+    memo: 
+    todos: []
+  - scriptPath: "Assets/move.\uC810\uD504.\uC190\uC885\uC6B1.partial.cs"
     category: Uncategorized
     memo: 
     todos: []
